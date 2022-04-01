@@ -159,7 +159,7 @@ public abstract class ProcessEngines {
     String resourceUrlString = resourceUrl.toString();
     try {
       log.info("initializing process engine for resource {}", resourceUrl);
-      ProcessEngine processEngine = buildProcessEngine(resourceUrl);
+      ProcessEngine processEngine = buildProcessEngine(resourceUrl);//构建engine，创建Spring容器，并存入，使用自己的DefaultListableBeanFactory
       String processEngineName = processEngine.getName();
       log.info("initialised process engine {}", processEngineName);
       processEngineInfo = new ProcessEngineInfoImpl(processEngineName, resourceUrlString, null);
@@ -184,9 +184,9 @@ public abstract class ProcessEngines {
   private static ProcessEngine buildProcessEngine(URL resource) {
     InputStream inputStream = null;
     try {
-      inputStream = resource.openStream();
+      inputStream = resource.openStream();//构建获取activiti.cfg配置的StandaloneProcessEngineConfiguration bean
       ProcessEngineConfiguration processEngineConfiguration = ProcessEngineConfiguration.createProcessEngineConfigurationFromInputStream(inputStream);
-      return processEngineConfiguration.buildProcessEngine();
+      return processEngineConfiguration.buildProcessEngine();//init StandaloneProcessEngineConfiguration，StandaloneProcessEngineConfiguration extends ProcessEngineConfigurationImpl
 
     } catch (IOException e) {
       throw new ActivitiIllegalArgumentException("couldn't open resource stream: " + e.getMessage(), e);
@@ -219,7 +219,7 @@ public abstract class ProcessEngines {
    *          is the name of the process engine or null for the default process engine.
    */
   public static ProcessEngine getProcessEngine(String processEngineName) {
-    if (!isInitialized()) {
+    if (!isInitialized()) {//乐观锁，防止重复init
       init();
     }
     return processEngines.get(processEngineName);

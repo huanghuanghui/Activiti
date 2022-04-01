@@ -306,18 +306,22 @@ public class ProcessDefinitionQueryImpl extends AbstractQuery<ProcessDefinitionQ
         return orderBy(ProcessDefinitionQueryProperty.DEPLOYMENT_ID);
     }
 
+    @Override
     public ProcessDefinitionQuery orderByProcessDefinitionKey() {
         return orderBy(ProcessDefinitionQueryProperty.PROCESS_DEFINITION_KEY);
     }
 
+    @Override
     public ProcessDefinitionQuery orderByProcessDefinitionCategory() {
         return orderBy(ProcessDefinitionQueryProperty.PROCESS_DEFINITION_CATEGORY);
     }
 
+    @Override
     public ProcessDefinitionQuery orderByProcessDefinitionId() {
         return orderBy(ProcessDefinitionQueryProperty.PROCESS_DEFINITION_ID);
     }
 
+    @Override
     public ProcessDefinitionQuery orderByProcessDefinitionVersion() {
         return orderBy(ProcessDefinitionQueryProperty.PROCESS_DEFINITION_VERSION);
     }

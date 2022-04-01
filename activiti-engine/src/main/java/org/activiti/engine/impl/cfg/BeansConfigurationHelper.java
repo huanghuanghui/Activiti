@@ -31,7 +31,9 @@ public class BeansConfigurationHelper {
     DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
     XmlBeanDefinitionReader xmlBeanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
     xmlBeanDefinitionReader.setValidationMode(XmlBeanDefinitionReader.VALIDATION_XSD);
+    //存入activiti.cfg声明的BeanDefinitions
     xmlBeanDefinitionReader.loadBeanDefinitions(springResource);
+    //获取存入的BeanDefinitions，然后加载bean，这边配置的是StandaloneProcessEngineConfiguration
     ProcessEngineConfigurationImpl processEngineConfiguration = (ProcessEngineConfigurationImpl) beanFactory.getBean(beanName);
     processEngineConfiguration.setBeans(new SpringBeanFactoryProxyMap(beanFactory));
     return processEngineConfiguration;

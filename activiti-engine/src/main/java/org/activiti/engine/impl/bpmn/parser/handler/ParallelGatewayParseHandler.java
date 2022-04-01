@@ -17,7 +17,7 @@ import org.activiti.bpmn.model.ParallelGateway;
 import org.activiti.engine.impl.bpmn.parser.BpmnParse;
 
 /**
-
+ *顶级父类是用了设计模式之模版方法模式定义了抽象方法executeParse用于获取并设置其行为类,发现处理器主要是用于给元素节点设置行为类。
  */
 public class ParallelGatewayParseHandler extends AbstractActivityBpmnParseHandler<ParallelGateway> {
 

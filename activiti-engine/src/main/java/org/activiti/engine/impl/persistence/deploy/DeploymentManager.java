@@ -55,7 +55,7 @@ public class DeploymentManager {
 
   public void deploy(DeploymentEntity deployment, Map<String, Object> deploymentSettings) {
     for (Deployer deployer : deployers) {
-      deployer.deploy(deployment, deploymentSettings);
+      deployer.deploy(deployment, deploymentSettings);//默认情况下部署器是BpmnDeployer，init的时候设置
     }
   }
 
@@ -69,7 +69,7 @@ public class DeploymentManager {
     ProcessDefinition processDefinition = cacheEntry != null ? cacheEntry.getProcessDefinition() : null;
 
     if (processDefinition == null) {
-      processDefinition = processDefinitionEntityManager.findById(processDefinitionId);
+      processDefinition = processDefinitionEntityManager.findById(processDefinitionId);//ACT_RE_PROCDEF
       if (processDefinition == null) {
         throw new ActivitiObjectNotFoundException("no deployed process definition found with id '" + processDefinitionId + "'", ProcessDefinition.class);
       }
@@ -118,7 +118,7 @@ public class DeploymentManager {
 
     if (cachedProcessDefinition == null) {
       CommandContext commandContext = Context.getCommandContext();
-      DeploymentEntity deployment = deploymentEntityManager.findById(deploymentId);
+      DeploymentEntity deployment = deploymentEntityManager.findById(deploymentId);//ACT_RE_DEPLOYMENT
       deployment.setNew(false);
       deploy(deployment, null);
       cachedProcessDefinition = processDefinitionCache.get(processDefinitionId);

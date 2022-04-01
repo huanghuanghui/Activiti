@@ -842,8 +842,8 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
 
   @Override
   public ProcessEngine buildProcessEngine() {
-    init();
-    ProcessEngineImpl processEngine = new ProcessEngineImpl(this);
+    init();//初始化StandaloneProcessEngineConfiguration所有服务
+    ProcessEngineImpl processEngine = new ProcessEngineImpl(this);//相当于aware，将this的属性，赋值给ProcessEngineImpl
     postProcessEngineInitialisation();
 
     return processEngine;
@@ -853,30 +853,30 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   // /////////////////////////////////////////////////////////////////////
 
   public void init() {
-    initConfigurators();
-    configuratorsBeforeInit();
-    initHistoryLevel();
-    initExpressionManager();
+    initConfigurators();//allConfigurators = new ArrayList<ProcessEngineConfigurator>() 初始化 allConfigurators属性
+    configuratorsBeforeInit();//allConfigurators第一次为空，不执行
+    initHistoryLevel();//historyLevel = HistoryLevel.getHistoryLevelForKey(getHistory())="AUDIT" ;初始化historyLevel
+    initExpressionManager();// expressionManager = new ExpressionManager(beans);
 
-    if (usingRelationalDatabase) {
-      initDataSource();
+    if (usingRelationalDatabase) {//默认使用关系型数据库，会初始化数据源
+      initDataSource();//生成 dataSource属性=new PooledDataSource()
     }
 
-    initAgendaFactory();
-    initHelpers();
-    initVariableTypes();
-    initBeans();
-    initScriptingEngines();
-    initClock();
-    initBusinessCalendarManager();
-    initCommandContextFactory();
-    initTransactionContextFactory();
-    initCommandExecutors();
-    initServices();
-    initIdGenerator();
-    initBehaviorFactory();
-    initListenerFactory();
-    initBpmnParser();
+    initAgendaFactory();//this.engineAgendaFactory = new DefaultActivitiEngineAgendaFactory();
+    initHelpers();//processInstanceHelper = new ProcessInstanceHelper();/listenerNotificationHelper = new ListenerNotificationHelper();
+    initVariableTypes();//variableTypes = new DefaultVariableTypes();
+    initBeans();//Spring DefaultListableBeanFactory存储的map
+    initScriptingEngines();//resolverFactories = new ArrayList<ResolverFactory>();//scriptingEngines = new ScriptingEngines(new ScriptBindingsFactory(this, resolverFactories));
+    initClock();//clock = new DefaultClockImpl();
+    initBusinessCalendarManager();//businessCalendarManager = mapBusinessCalendarManager;
+    initCommandContextFactory();//commandContextFactory = new CommandContextFactory();
+    initTransactionContextFactory();//transactionContextFactory = new StandaloneMybatisTransactionContextFactory();
+    initCommandExecutors();//重要 初始化了commandInvoker，初始化CommandInterceptors责任链，在执行后续的 command操作的时候，会走这些责任链设置
+    initServices();//设置service的commandExecutor，从上一步生成的commandExecutor
+    initIdGenerator();//生成设置DbIdGenerator
+    initBehaviorFactory();//生成activityBehaviorFactory = DefaultActivityBehaviorFactory
+    initListenerFactory();//listenerFactory =new DefaultListenerFactory()
+    initBpmnParser();//初始化bpmnParser = new BpmnParser();
     initProcessDefinitionCache();
     initProcessDefinitionInfoCache();
     initKnowledgeBaseCache();
@@ -887,15 +887,15 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
     initTransactionFactory();
 
     if (usingRelationalDatabase) {
-      initSqlSessionFactory();
+      initSqlSessionFactory();//初始化mybatis configuration配置，加载org/activiti/db/mapping/mappings.xml下的mapper，设置DefaultSqlSessionFactory，使用原生mybatis
     }
 
     initSessionFactories();
     initDataManagers();
-    initEntityManagers();
+    initEntityManagers();//重要，设置manager，就是mapperDao
     initHistoryManager();
     initJpa();
-    initDeployers();
+    initDeployers();//设置bpmnDeployer = new BpmnDeployer();
     initDelegateInterceptor();
     initEventHandlers();
     initFailedJobCommandFactory();
@@ -918,11 +918,11 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   // ////////////////////////////////////////////////////////
 
   public void initCommandExecutors() {
-    initDefaultCommandConfig();
-    initSchemaCommandConfig();
-    initCommandInvoker();
-    initCommandInterceptors();
-    initCommandExecutor();
+    initDefaultCommandConfig();//defaultCommandConfig
+    initSchemaCommandConfig();//schemaCommandConfig
+    initCommandInvoker();//commandInvoker
+    initCommandInterceptors();//commandInterceptors
+    initCommandExecutor();//将上面设置的，生成CommandExecutor
   }
 
   public void initDefaultCommandConfig() {
@@ -953,11 +953,11 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
       if (customPreCommandInterceptors != null) {
         commandInterceptors.addAll(customPreCommandInterceptors);
       }
-      commandInterceptors.addAll(getDefaultCommandInterceptors());
+      commandInterceptors.addAll(getDefaultCommandInterceptors());//LogInterceptor() TransactionInterceptor CommandContextInterceptor TransactionContextInterceptor
       if (customPostCommandInterceptors != null) {
         commandInterceptors.addAll(customPostCommandInterceptors);
       }
-      commandInterceptors.add(commandInvoker);
+      commandInterceptors.add(commandInvoker);//最后一层是commandInvoker
     }
   }
 
@@ -983,8 +983,8 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
 
   public void initCommandExecutor() {
     if (commandExecutor == null) {
-      CommandInterceptor first = initInterceptorChain(commandInterceptors);
-      commandExecutor = new CommandExecutorImpl(getDefaultCommandConfig(), first);
+      CommandInterceptor first = initInterceptorChain(commandInterceptors);//first是LogInterceptor
+      commandExecutor = new CommandExecutorImpl(getDefaultCommandConfig(), first);//将chain设置
     }
   }
 
@@ -992,7 +992,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
     if (chain == null || chain.isEmpty()) {
       throw new ActivitiException("invalid command interceptor chain configuration: " + chain);
     }
-    for (int i = 0; i < chain.size() - 1; i++) {
+    for (int i = 0; i < chain.size() - 1; i++) {//设置chain责任链的执行顺序，将第一个chain返回，然后可以一路往下执行
       chain.get(i).setNext(chain.get(i + 1));
     }
     return chain.get(0);
@@ -1168,12 +1168,12 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
     if (sqlSessionFactory == null) {
       InputStream inputStream = null;
       try {
-        inputStream = getMyBatisXmlConfigurationStream();
+        inputStream = getMyBatisXmlConfigurationStream();//设置mybatis解析文件路径地址默认为org/activiti/db/mapping/mappings.xml
 
         Environment environment = new Environment("default", transactionFactory, dataSource);
         Reader reader = new InputStreamReader(inputStream);
         Properties properties = new Properties();
-        properties.put("prefix", databaseTablePrefix);
+        properties.put("prefix", databaseTablePrefix);//可以设置自定义的database prefix前缀
         String wildcardEscapeClause = "";
         if ((databaseWildcardEscapeCharacter != null) && (databaseWildcardEscapeCharacter.length() != 0)) {
           wildcardEscapeClause = " escape '" + databaseWildcardEscapeCharacter + "'";
@@ -1194,7 +1194,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
         }
 
         Configuration configuration = initMybatisConfiguration(environment, reader, properties);
-        sqlSessionFactory = new DefaultSqlSessionFactory(configuration);
+        sqlSessionFactory = new DefaultSqlSessionFactory(configuration);//声明mybatis的sqlSessionFactory为DefaultSqlSessionFactory，存入configuration对象
 
       } catch (Exception e) {
         throw new ActivitiException("Error while building ibatis SqlSessionFactory: " + e.getMessage(), e);
@@ -1607,15 +1607,18 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   public void initDeployers() {
     if (this.deployers == null) {
       this.deployers = new ArrayList<Deployer>();
+      //自定义前置部署处理
       if (customPreDeployers != null) {
         this.deployers.addAll(customPreDeployers);
       }
+      //默认部署，进行bpmn部署器的初始化
       this.deployers.addAll(getDefaultDeployers());
+      //自定义后置部署处理
       if (customPostDeployers != null) {
         this.deployers.addAll(customPostDeployers);
       }
     }
-
+    //部署管理器初始化
     if (deploymentManager == null) {
       deploymentManager = new DeploymentManager();
       deploymentManager.setDeployers(deployers);
@@ -1632,6 +1635,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   public void initBpmnDeployerDependencies() {
 
     if (parsedDeploymentBuilderFactory == null) {
+      //解析工厂初始化
       parsedDeploymentBuilderFactory = new ParsedDeploymentBuilderFactory();
     }
     if (parsedDeploymentBuilderFactory.getBpmnParser() == null) {
@@ -1639,14 +1643,17 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
     }
 
     if (timerManager == null) {
+      //定时器管理器
       timerManager = new TimerManager();
     }
 
     if (eventSubscriptionManager == null) {
+      //事件订阅管理器
       eventSubscriptionManager = new EventSubscriptionManager();
     }
 
     if (bpmnDeploymentHelper == null) {
+      //流程部署帮助类
       bpmnDeploymentHelper = new BpmnDeploymentHelper();
     }
     if (bpmnDeploymentHelper.getTimerManager() == null) {
@@ -1666,9 +1673,10 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
     List<Deployer> defaultDeployers = new ArrayList<Deployer>();
 
     if (bpmnDeployer == null) {
+      //用于流程的部署
       bpmnDeployer = new BpmnDeployer();
     }
-
+    //初始化bpmn部署依赖管理器(解析部署构建工厂进行了bpmnParser的关联)
     initBpmnDeployerDependencies();
 
     bpmnDeployer.setIdGenerator(idGenerator);
@@ -1731,38 +1739,39 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
 
     // Alphabetic list of default parse handler classes
     List<BpmnParseHandler> bpmnParserHandlers = new ArrayList<BpmnParseHandler>();
-    bpmnParserHandlers.add(new BoundaryEventParseHandler());
-    bpmnParserHandlers.add(new BusinessRuleParseHandler());
-    bpmnParserHandlers.add(new CallActivityParseHandler());
-    bpmnParserHandlers.add(new CancelEventDefinitionParseHandler());
-    bpmnParserHandlers.add(new CompensateEventDefinitionParseHandler());
-    bpmnParserHandlers.add(new EndEventParseHandler());
-    bpmnParserHandlers.add(new ErrorEventDefinitionParseHandler());
-    bpmnParserHandlers.add(new EventBasedGatewayParseHandler());
-    bpmnParserHandlers.add(new ExclusiveGatewayParseHandler());
-    bpmnParserHandlers.add(new InclusiveGatewayParseHandler());
-    bpmnParserHandlers.add(new IntermediateCatchEventParseHandler());
-    bpmnParserHandlers.add(new IntermediateThrowEventParseHandler());
-    bpmnParserHandlers.add(new ManualTaskParseHandler());
-    bpmnParserHandlers.add(new MessageEventDefinitionParseHandler());
-    bpmnParserHandlers.add(new ParallelGatewayParseHandler());
-    bpmnParserHandlers.add(new ProcessParseHandler());
-    bpmnParserHandlers.add(new ReceiveTaskParseHandler());
-    bpmnParserHandlers.add(new ScriptTaskParseHandler());
-    bpmnParserHandlers.add(new SendTaskParseHandler());
-    bpmnParserHandlers.add(new SequenceFlowParseHandler());
-    bpmnParserHandlers.add(new ServiceTaskParseHandler());
-    bpmnParserHandlers.add(new SignalEventDefinitionParseHandler());
-    bpmnParserHandlers.add(new StartEventParseHandler());
-    bpmnParserHandlers.add(new SubProcessParseHandler());
-    bpmnParserHandlers.add(new EventSubProcessParseHandler());
-    bpmnParserHandlers.add(new AdhocSubProcessParseHandler());
-    bpmnParserHandlers.add(new TaskParseHandler());
-    bpmnParserHandlers.add(new TimerEventDefinitionParseHandler());
-    bpmnParserHandlers.add(new TransactionParseHandler());
-    bpmnParserHandlers.add(new UserTaskParseHandler());
+    bpmnParserHandlers.add(new BoundaryEventParseHandler());//边界事件解析处理器
+    bpmnParserHandlers.add(new BusinessRuleParseHandler());//业务规则解析处理器
+    bpmnParserHandlers.add(new CallActivityParseHandler());//调用流程解析处理器
+    bpmnParserHandlers.add(new CancelEventDefinitionParseHandler());//取消事件定义解析处理器
+    bpmnParserHandlers.add(new CompensateEventDefinitionParseHandler());//补偿事件定义解析处理器
+    bpmnParserHandlers.add(new EndEventParseHandler());//结束事件解析处理器
+    bpmnParserHandlers.add(new ErrorEventDefinitionParseHandler());//错误事件定义解析处理器
+    bpmnParserHandlers.add(new EventBasedGatewayParseHandler());//基于事件网关解析处理器
+    bpmnParserHandlers.add(new ExclusiveGatewayParseHandler());//排他网关解析处理器
+    bpmnParserHandlers.add(new InclusiveGatewayParseHandler());//包容网关解析处理器
+    bpmnParserHandlers.add(new IntermediateCatchEventParseHandler());//中间捕获事件解析处理器
+    bpmnParserHandlers.add(new IntermediateThrowEventParseHandler());//中间抛出事件解析处理器
+    bpmnParserHandlers.add(new ManualTaskParseHandler());//手动任务解析处理器
+    bpmnParserHandlers.add(new MessageEventDefinitionParseHandler());//消息事件定义解析处理器
+    bpmnParserHandlers.add(new ParallelGatewayParseHandler());//并行网关解析处理器
+    bpmnParserHandlers.add(new ProcessParseHandler());//流程解析处理器
+    bpmnParserHandlers.add(new ReceiveTaskParseHandler());//接收任务解析处理器
+    bpmnParserHandlers.add(new ScriptTaskParseHandler());//脚本任务解析处理器
+    bpmnParserHandlers.add(new SendTaskParseHandler());//发送任务解析处理器
+    bpmnParserHandlers.add(new SequenceFlowParseHandler());//线条解析处理
+    bpmnParserHandlers.add(new ServiceTaskParseHandler());//服务任务解析处理器
+    bpmnParserHandlers.add(new SignalEventDefinitionParseHandler());//信号事件定义解析处理器
+    bpmnParserHandlers.add(new StartEventParseHandler());//开始事件解析处理器
+    bpmnParserHandlers.add(new SubProcessParseHandler());//流程子任务解析处理器
+    bpmnParserHandlers.add(new EventSubProcessParseHandler());//事件子流程解析处理器
+    bpmnParserHandlers.add(new AdhocSubProcessParseHandler());//特殊子流程解析处理器
+    bpmnParserHandlers.add(new TaskParseHandler());//任务解析处理器
+    bpmnParserHandlers.add(new TimerEventDefinitionParseHandler());//定时事件定义解析处理器
+    bpmnParserHandlers.add(new TransactionParseHandler());//事务解析处理器
+    bpmnParserHandlers.add(new UserTaskParseHandler());//用户任务解析处理器
 
     // Replace any default handler if the user wants to replace them
+    //自定义的解析器
     if (customDefaultBpmnParseHandlers != null) {
 
       Map<Class<?>, BpmnParseHandler> customParseHandlerMap = new HashMap<Class<?>, BpmnParseHandler>();
@@ -1784,6 +1793,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
               + ". This is likely a programmatic error");
         } else {
           Class<?> handledType = defaultBpmnParseHandler.getHandledTypes().iterator().next();
+          //自定义是否覆盖了默认的，若覆盖了则用自定义的，就替换掉
           if (customParseHandlerMap.containsKey(handledType)) {
             BpmnParseHandler newBpmnParseHandler = customParseHandlerMap.get(handledType);
             log.info("Replacing default BpmnParseHandler " + defaultBpmnParseHandler.getClass().getName() + " with " + newBpmnParseHandler.getClass().getName());
@@ -2140,7 +2150,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
    */
   protected void postProcessEngineInitialisation() {
     if (performanceSettings.isValidateExecutionRelationshipCountConfigOnBoot()) {
-      commandExecutor.execute(new ValidateExecutionRelatedEntityCountCfgCmd());
+      commandExecutor.execute(new ValidateExecutionRelatedEntityCountCfgCmd());//核心代码
     }
   }
 

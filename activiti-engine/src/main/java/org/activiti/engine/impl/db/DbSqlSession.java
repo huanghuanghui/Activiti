@@ -461,8 +461,8 @@ public class DbSqlSession implements Session {
             }
         }
 
-        String selectStatement = dbSqlSessionFactory.getSelectStatement(entityClass);
-        selectStatement = dbSqlSessionFactory.mapStatement(selectStatement);
+        String selectStatement = dbSqlSessionFactory.getSelectStatement(entityClass);//prefix + entityClass去除EntityImpl
+        selectStatement = dbSqlSessionFactory.mapStatement(selectStatement);//Statement映射
         entity = (T) sqlSession.selectOne(selectStatement,
                                           id);
         if (entity == null) {
